@@ -1,7 +1,0 @@
-openai
-pandas
-openpyxl
-flask
-requests
-azure-storage-blob
-azure-mgmt-resource
