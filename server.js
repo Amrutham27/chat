@@ -25,7 +25,7 @@ app.use(express.static('public'));
 
 // Serve the chatbot HTML
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'chatbot.html'));
+    res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 // API endpoint to submit leads
