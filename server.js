@@ -19,14 +19,13 @@ const AZURE_CONFIG = {
 };
 
 // Middleware
+// Middleware
 app.use(cors());
 app.use(express.json());
-app.use(express.static('public'));
 
-// Serve the chatbot HTML
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
-});
+// ✅ Serve static files
+app.use(express.static(__dirname));
+app.use('/assets', express.static(path.join(__dirname, 'assets')));
 
 // API endpoint to submit leads
 app.post('/api/submit-lead', async (req, res) => {
