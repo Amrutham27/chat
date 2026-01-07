@@ -12,6 +12,67 @@
   <link rel="stylesheet" href="assets/css/libraries.css">
   <link rel="stylesheet" href="assets/css/icons.css">
   <link rel="stylesheet" href="assets/css/style.css">
+  <style>
+    .chatbot-container {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 1000;
+    }
+    .chatbot-icon {
+      width: 60px;
+      height: 60px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+      transition: transform 0.3s ease;
+    }
+    .chatbot-icon:hover {
+      transform: scale(1.1);
+    }
+    .chatbot-message {
+      position: absolute;
+      bottom: 70px;
+      right: 0;
+      background: #fff;
+      border-radius: 20px;
+      padding: 15px 20px;
+      max-width: 250px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+      transform: translateY(20px) scale(0.8);
+      opacity: 0;
+      transition: all 0.3s ease;
+    }
+    .chatbot-message.show {
+      transform: translateY(0) scale(1);
+      opacity: 1;
+    }
+    .chatbot-message::after {
+      content: '';
+      position: absolute;
+      bottom: -8px;
+      right: 20px;
+      width: 0;
+      height: 0;
+      border-left: 8px solid transparent;
+      border-right: 8px solid transparent;
+      border-top: 8px solid #fff;
+    }
+    .close-msg {
+      position: absolute;
+      top: 5px;
+      right: 10px;
+      background: none;
+      border: none;
+      font-size: 16px;
+      cursor: pointer;
+      color: #999;
+    }
+  </style>
 </head>
 
 <body>
@@ -162,6 +223,34 @@
       <div class="swiper swiper-controls-light p-0 m-0"
         data-swiper='{"slidesPerView":1,"spaceBetween":0,"autoplay":{"delay":"10000"}, "loop":true,"speed": 1000, "navigation": {"nextEl": ".slider-next","prevEl": ".slider-prev"} }'>
         <div class="swiper-wrapper">
+
+    <!-- Chatbot -->
+    <div class="chatbot-container">
+      <div id="chatbotMessage" class="chatbot-message">
+        <button class="close-msg" onclick="closeMessage()">&times;</button>
+        <div style="font-size: 14px; color: #333; margin-bottom: 8px;">👋 Hi there!</div>
+        <div style="font-size: 13px; color: #666; line-height: 1.4;">I'm here to help! Got any questions? 😊</div>
+      </div>
+      <div class="chatbot-icon" onclick="toggleChat()">
+        <svg width="24" height="24" fill="white" viewBox="0 0 24 24">
+          <path d="M20 2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h4l4 4 4-4h4c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"/>
+        </svg>
+      </div>
+    </div>
+
+    <script>
+      setTimeout(() => {
+        document.getElementById('chatbotMessage').classList.add('show');
+      }, 1000);
+      
+      function closeMessage() {
+        document.getElementById('chatbotMessage').style.display = 'none';
+      }
+      
+      function toggleChat() {
+        alert('Chat feature would open here');
+      }
+    </script>
           <div class="swiper-slide slide-item bg-overlay align-v-h">
             <div class="bg-img"><img src="https://www.gradientm.com/wp-content/uploads/2024/08/Get-future-ready-page-Home-page-banner-1650-x-475.jpg" alt="slide img"></div>
             <div class="container">
@@ -1713,6 +1802,8 @@
     
     .chatbot-container.active {
       display: flex !important;
+      border: 2px solid rgba(243, 162, 51, 0.3);
+      box-shadow: 0 15px 35px rgba(243, 162, 51, 0.2), 0 0 0 1px rgba(243, 162, 51, 0.1);
     }
     
     .chat-header { 
@@ -2026,10 +2117,7 @@
   <!-- Chat Popup Notification -->
   <div class="chat-popup" id="chatPopup" onclick="toggleChatbot()">
     <div class="chat-popup-content">
-      <div style="display: flex; align-items: center;">
-        <span class="chat-popup-icon">👋</span>
-        <p class="chat-popup-text">Need any help?</p>
-      </div>
+      <span class="chat-popup-text">👋 Hey, Need help?</span>
       <button class="chat-popup-close" onclick="event.stopPropagation(); closeChatPopup();">×</button>
     </div>
   </div>
@@ -2054,332 +2142,999 @@
   <script src="assets/js/libraries.js"></script>
   <script src="assets/js/main.js"></script>
 
-  <!-- Chatbot Script -->
-  <script>
-    let currentStep = 'greeting';
-    let userRequirement = '';
-    let formData = {};
-    let chatbotInitialized = false;
+     <!-- Chatbot Script -->
+        <script>
+            let currentStep = 'greeting';
+            let userRequirement = '';
+            let formData = {};
+            let chatbotInitialized = false;
+            let scrollTriggered = false;
+            let timeTriggered = false;
 
-    function toggleChatbot() {
-      const container = document.getElementById('chatbotContainer');
-      const popup = document.getElementById('chatPopup');
-      const isActive = container.classList.contains('active');
-      
-      if (isActive) {
-        container.classList.remove('active');
-      } else {
-        container.classList.add('active');
-        popup.classList.remove('show'); // Hide popup when chat opens
-        if (!chatbotInitialized) {
-          showGreeting();
-          chatbotInitialized = true;
-        }
-      }
-    }
+            function toggleChatbot() {
+                const container = document.getElementById('chatbotContainer');
+                if (!container.classList.contains('active')) {
+                    container.classList.add('active');
+                    container.style.zIndex = '2147483646';
+                    container.style.position = 'fixed';
+                    adjustChatbotPosition();
+                    if (!chatbotInitialized) {
+                        showGreeting();
+                        chatbotInitialized = true;
+                    }
+                } else {
+                    container.classList.remove('active');
+                }
+            }
+            
+            function adjustChatbotPosition() {
+                const container = document.getElementById('chatbotContainer');
+                const header = document.querySelector('.header_area');
+                const stickyHeader = document.querySelector('.sticky_header_area');
+                
+                if (container && (header || stickyHeader)) {
+                    // Ensure chatbot doesn't overlap with navigation dropdowns
+                    const dropdowns = document.querySelectorAll('.sub_menu:hover, .menu-item:hover .sub_menu');
+                    if (dropdowns.length > 0) {
+                        container.style.zIndex = '9996';
+                    } else {
+                        container.style.zIndex = '9997';
+                    }
+                }
+            }
+            
+            // Chatbot trigger functions
+            function initializeChatbotTriggers() {
+                // Immediate popup when website loads - ALWAYS show
+                setTimeout(() => {
+                    showImmediatePopup();
+                }, 1000); // Show after 1 second
+                
+                // Time-based trigger: 10 seconds (backup)
+                setTimeout(() => {
+                    if (!chatbotInitialized && !timeTriggered) {
+                        timeTriggered = true;
+                        toggleChatbot();
+                    }
+                }, 10000);
+                
+                // Scroll-based trigger: 50% down homepage
+                window.addEventListener('scroll', () => {
+                    if (!scrollTriggered && window.location.pathname === '/' || window.location.pathname === '/index.html') {
+                        const scrollPercent = (window.scrollY / (document.body.scrollHeight - window.innerHeight)) * 100;
+                        if (scrollPercent >= 50) {
+                            scrollTriggered = true;
+                            if (!chatbotInitialized) {
+                                toggleChatbot();
+                            }
+                        }
+                    }
+                });
+            }
+            
+            function showImmediatePopup() {
+                const popup = document.getElementById('chatPopup');
+                popup.classList.add('show');
+                
+                // Hide popup after 5 seconds
+                setTimeout(() => {
+                    popup.classList.remove('show');
+                }, 5000);
+            }
+            
+            function closeChatPopup() {
+                const popup = document.getElementById('chatPopup');
+                popup.classList.remove('show');
+            }
+            
+            function openChatbotFromPopup() {
+                // Hide the popup
+                document.getElementById('chatPopup').classList.remove('show');
+                
+                // Open the full chatbot
+                const container = document.getElementById('chatbotContainer');
+                container.classList.add('active');
+                container.style.zIndex = '2147483646';
+                container.style.position = 'fixed';
+                adjustChatbotPosition();
+                
+                if (!chatbotInitialized) {
+                    showGreeting();
+                    chatbotInitialized = true;
+                }
+            }
 
-    function showChatPopup() {
-      const popup = document.getElementById('chatPopup');
-      const container = document.getElementById('chatbotContainer');
-      
-      // Only show popup if chat is not already open
-      if (!container.classList.contains('active')) {
-        popup.classList.add('show');
-      }
-    }
+            // Ensure chatbot stays on top at all times
+            document.addEventListener('DOMContentLoaded', function() {
+                // Initialize triggers
+                initializeChatbotTriggers();
+                
+                // Initial positioning
+                adjustChatbotPosition();
+                
+                // Monitor for any z-index changes and maintain supremacy
+                const observer = new MutationObserver(function(mutations) {
+                    adjustChatbotPosition();
+                });
+                
+                // Observe changes to the document
+                observer.observe(document.body, {
+                    childList: true,
+                    subtree: true,
+                    attributes: true,
+                    attributeFilter: ['style', 'class']
+                });
+                
+                // Handle window resize and scroll
+                window.addEventListener('resize', adjustChatbotPosition);
+                window.addEventListener('scroll', adjustChatbotPosition);
+                
+                // Periodic check to ensure chatbot stays on top
+                setInterval(adjustChatbotPosition, 1000);
+            });
 
-    function closeChatPopup() {
-      const popup = document.getElementById('chatPopup');
-      popup.classList.remove('show');
-    }
+            function showTypingIndicator() {
+                const messagesDiv = document.getElementById('chatMessages');
+                const typingDiv = document.createElement('div');
+                typingDiv.className = 'message typing-indicator';
+                typingDiv.id = 'typing';
+                typingDiv.innerHTML = '<div class="bot-message">...</div>';
+                messagesDiv.appendChild(typingDiv);
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            }
 
-    function showTypingIndicator() {
-      const messagesDiv = document.getElementById('chatMessages');
-      const typingDiv = document.createElement('div');
-      typingDiv.className = 'message typing-indicator';
-      typingDiv.id = 'typing';
-      typingDiv.innerHTML = '<div class="bot-message">...</div>';
-      messagesDiv.appendChild(typingDiv);
-      messagesDiv.scrollTop = messagesDiv.scrollHeight;
-    }
+            function removeTypingIndicator() {
+                const typing = document.getElementById('typing');
+                if (typing) typing.remove();
+            }
 
-    function removeTypingIndicator() {
-      const typing = document.getElementById('typing');
-      if (typing) typing.remove();
-    }
+            function addMessage(message, isBot = true, hasOptions = false, options = [], delay = 300) {
+                if (isBot && delay > 0) {
+                    showTypingIndicator();
+                    setTimeout(() => {
+                        removeTypingIndicator();
+                        addMessageImmediate(message, isBot, hasOptions, options);
+                    }, delay);
+                } else {
+                    addMessageImmediate(message, isBot, hasOptions, options);
+                }
+            }
 
-    function addMessage(message, isBot = true, hasOptions = false, options = [], delay = 300) {
-      if (isBot && delay > 0) {
-        showTypingIndicator();
-        setTimeout(() => {
-          removeTypingIndicator();
-          addMessageImmediate(message, isBot, hasOptions, options);
-        }, delay);
-      } else {
-        addMessageImmediate(message, isBot, hasOptions, options);
-      }
-    }
+            function addMessageImmediate(message, isBot = true, hasOptions = false, options = []) {
+                const messagesDiv = document.getElementById('chatMessages');
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'message';
+                
+                const messageContent = document.createElement('div');
+                messageContent.className = isBot ? 'bot-message' : 'user-message';
+                messageContent.innerHTML = message;
+                
+                messageDiv.appendChild(messageContent);
+                
+                if (hasOptions && options.length > 0) {
+                    const optionsDiv = document.createElement('div');
+                    optionsDiv.className = 'options';
+                    
+                    options.forEach(option => {
+                        const btn = document.createElement('button');
+                        btn.className = 'option-btn';
+                        btn.textContent = option.text;
+                        btn.onclick = option.action;
+                        optionsDiv.appendChild(btn);
+                    });
+                    
+                    messageDiv.appendChild(optionsDiv);
+                }
+                
+                messagesDiv.appendChild(messageDiv);
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            }
 
-    function addMessageImmediate(message, isBot = true, hasOptions = false, options = []) {
-      const messagesDiv = document.getElementById('chatMessages');
-      const messageDiv = document.createElement('div');
-      messageDiv.className = 'message';
-      
-      const messageContent = document.createElement('div');
-      messageContent.className = isBot ? 'bot-message' : 'user-message';
-      messageContent.innerHTML = message;
-      
-      messageDiv.appendChild(messageContent);
-      
-      if (hasOptions && options.length > 0) {
-        const optionsDiv = document.createElement('div');
-        optionsDiv.className = 'options';
-        
-        options.forEach(option => {
-          const btn = document.createElement('button');
-          btn.className = 'option-btn';
-          btn.textContent = option.text;
-          btn.onclick = option.action;
-          optionsDiv.appendChild(btn);
-        });
-        
-        messageDiv.appendChild(optionsDiv);
-      }
-      
-      messagesDiv.appendChild(messageDiv);
-      messagesDiv.scrollTop = messagesDiv.scrollHeight;
-    }
+            function validateEmail(email) {
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                return emailRegex.test(email);
+            }
 
-    function validateEmail(email) {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      return emailRegex.test(email);
-    }
+            function validatePhone(phone) {
+                const phoneRegex = /^[\d\s\-\+\(\)]{10,}$/;
+                return phoneRegex.test(phone);
+            }
 
-    function validatePhone(phone) {
-      const phoneRegex = /^[\d\s\-\+\(\)]{10,}$/;
-      return phoneRegex.test(phone);
-    }
+            function processUserInput(input) {
+                const lowerInput = input.toLowerCase();
+                
+                if (lowerInput.includes('human') || lowerInput.includes('sales') || lowerInput.includes('speak')) {
+                    showSalesForm();
+                } else if (lowerInput.includes('career') || lowerInput.includes('job') || lowerInput.includes('hiring')) {
+                    showCareerOptions();
+                } else if (lowerInput.includes('help') || lowerInput.includes('support')) {
+                    showGeneralInquiryForm();
+                } else {
+                    addMessage('I understand you have a question. Let me connect you with the right team.', true, true, [
+                        { text: 'Speak to Sales', action: () => showSalesForm() },
+                        { text: 'General Inquiry', action: () => showGeneralInquiryForm() },
+                        { text: 'Start Over', action: () => { clearChat(); showGreeting(); } }
+                    ]);
+                }
+            }
 
-    function showGreeting() {
-      addMessage('Hello! We help businesses Solve, Scale, & Succeed. Which area can we help you with?', true, true, [
-        { text: 'IT Consulting', action: () => selectService('IT Consulting') },
-        { text: 'Cloud & Infra', action: () => selectService('Cloud & Infra') },
-        { text: 'Digital Workplace', action: () => selectService('Digital Workplace') },
-        { text: 'Data & AI Services', action: () => selectService('Data & AI Services') },
-        { text: 'Talent Acquisition', action: () => selectService('Talent Acquisition') },
-        { text: 'Careers', action: () => selectService('Careers') },
-        { text: 'Contact Us', action: () => showContactForm() }
-      ]);
-    }
+            function showGreeting() {
+                addMessage('Hello! We help businesses Solve, Scale, & Succeed. Which area can we help you with?', true, true, [
+                    { text: 'IT Consulting', action: () => selectService('IT Consulting') },
+                    { text: 'Cloud & Infra', action: () => selectService('Cloud & Infra') },
+                    { text: 'Digital Workplace', action: () => selectService('Digital Workplace') },
+                    { text: 'Data & AI Services', action: () => selectService('Data & AI Services') },
+                    { text: 'Talent Acquisition', action: () => selectService('Talent Acquisition') },
+                    { text: 'Careers', action: () => selectService('Careers') },
+                    { text: 'Contact Us ', action: () => showContactCareers('Contact Us') }
+                ]);
+            }
 
-    function selectService(service) {
-      addMessage(service, false);
-      
-      if (service === 'IT Consulting') {
-        addMessage('We focus on strategy and growth. How can we help you?', true, true, [
-          { text: 'Get a Quote', action: () => showContactForm() },
-          { text: 'Schedule Consultation', action: () => showContactForm() }
-        ]);
-      } else if (service === 'Cloud & Infra') {
-        addMessage('We help modernize your infrastructure. What\'s your focus?', true, true, [
-          { text: 'Cloud Migration', action: () => showContactForm() },
-          { text: 'Managed Services', action: () => showContactForm() }
-        ]);
-      } else if (service === 'Digital Workplace') {
-        addMessage('We streamline productivity. What interests you?', true, true, [
-          { text: 'Collaboration Tools', action: () => showContactForm() },
-          { text: 'Device Management', action: () => showContactForm() }
-        ]);
-      } else if (service === 'Data & AI Services') {
-        addMessage('We turn data into decisions. What\'s your priority?', true, true, [
-          { text: 'Data Strategy', action: () => showContactForm() },
-          { text: 'AI Solutions', action: () => showContactForm() }
-        ]);
-      } else if (service === 'Talent Acquisition') {
-        addMessage('We help you hire the right talent. What do you need?', true, true, [
-          { text: 'Single Role', action: () => showContactForm() },
-          { text: 'Team Building', action: () => showContactForm() }
-        ]);
-      } else if (service === 'Careers') {
-        addMessage('Interested in joining our team?', true, true, [
-          { text: 'View Open Positions', action: () => window.open('/careers', '_blank') },
-          { text: 'Submit Resume', action: () => showContactForm() }
-        ]);
-      }
-    }
+            function showServices() {
+                addMessage('Our Services', false);
+                addMessage('Gradient M offers comprehensive technology solutions:', true, true, [
+                    { text: 'Cloud & Infrastructure', action: () => selectService('Cloud & Infrastructure') },
+                    { text: 'Digital Transformation', action: () => selectService('Digital Transformation') },
+                    { text: 'Data Analytics & AI', action: () => selectService('Data Analytics & AI') },
+                    { text: 'Cybersecurity', action: () => selectService('Cybersecurity') },
+                    { text: 'Software Development', action: () => selectService('Software Development') },
+                    { text: 'IT Consulting', action: () => selectService('IT Consulting') }
+                ]);
+            }
 
-    function showContactForm() {
-      const formHtml = `
-        <div class="form-group">
-          <input type="text" id="name" placeholder="Name" required>
-        </div>
-        <div class="form-group">
-          <input type="tel" id="phone" placeholder="Phone Number" required>
-        </div>
-        <div class="form-group">
-          <input type="email" id="email" placeholder="Email" required>
-        </div>
-        <div class="form-group">
-          <input type="text" id="company" placeholder="Company Name" required>
-        </div>
-        <div class="form-group">
-          <textarea id="message" placeholder="Message (optional)" rows="3"></textarea>
-        </div>
-        <button class="submit-btn" onclick="submitForm()">Submit</button>
-      `;
-      
-      addMessage('Please share your contact details:', true);
-      addMessage(formHtml, true);
-    }
+            function selectService(service) {
+                addMessage(service, false);
+                
+                if (service === 'IT Consulting') {
+                    showITConsultingOptions();
+                } else if (service === 'Infrastructure Modernization' || service === 'Cloud & Infra') {
+                    showInfrastructureOptions();
+                } else if (service === 'Digital Workplace') {
+                    showDigitalWorkplaceOptions();
+                } else if (service === 'Data & AI Services') {
+                    showDataAIOptions();
+                } else if (service === 'Talent Acquisition') {
+                    showTalentAcquisitionOptions();
+                } else if (service === 'Careers') {
+                    showCareerOptions();
+                } else {
+                    const serviceInfo = {};
+                    
+                    addMessage(serviceInfo[service] || 'Learn more about our comprehensive solutions.');
+                    addMessage('Would you like to:', true, true, [
+                        { text: 'Get a Quote', action: () => showContactForm() },
+                        { text: 'Schedule a Consultation', action: () => showConsultationForm() },
+                        { text: 'Learn More', action: () => showMoreInfo(service) }
+                    ]);
+                }
+            }
 
-    function submitForm() {
-      const name = document.getElementById('name')?.value.trim();
-      const phone = document.getElementById('phone')?.value.trim();
-      const email = document.getElementById('email')?.value.trim();
-      const company = document.getElementById('company')?.value.trim();
-      const message = document.getElementById('message')?.value.trim() || 'No message';
+            function showTalentAcquisitionOptions() {
+                addMessage('We help you hire. Are you looking to fill a Single Niche Role or Build Out a New Team?', true, true, [
+                    { text: 'Single Niche Role', action: () => selectTalentType('Single Niche Role') },
+                    { text: 'Build Out a New Team', action: () => selectTalentType('Build Out a New Team') }
+                ]);
+            }
 
-      if (!name || !phone || !email || !company) {
-        alert('Please fill in all required fields.');
-        return;
-      }
-      
-      if (!validateEmail(email)) {
-        alert('Please enter a valid email address.');
-        return;
-      }
+            function selectTalentType(type) {
+                addMessage(type, false);
+                formData.talentType = type;
+                addMessage('Understood. To assess your needs, please provide your Name and Phone Number.', true);
+                showTalentForm();
+            }
 
-      const formData = { name, phone, email, company, message, timestamp: new Date().toISOString() };
-      
-      // Save to localStorage
-      const leads = JSON.parse(localStorage.getItem('gradient_m_leads') || '[]');
-      leads.push(formData);
-      localStorage.setItem('gradient_m_leads', JSON.stringify(leads));
-      
-      addMessage('✅ Thank you! Your information has been recorded.', true);
-      addMessage('Our team will contact you within 24 hours. 📞', true);
-      
-      setTimeout(() => {
-        clearChat();
-      }, 3000);
-    }
+            function showTalentForm() {
+                const formHtml = `
+                    <div class="form-group">
+                        <input type="text" id="talentName" placeholder="Name" required>
+                    </div>
+                    <div class="form-group">
+                        <input type="tel" id="talentPhone" placeholder="Phone Number" required>
+                    </div>
+                    <button onclick="submitTalentForm()" class="submit-btn">Submit</button>
+                `;
+                addMessage(formHtml, true);
+            }
 
-    // Azure OpenAI Configuration
-    const AZURE_CONFIG = {
-      endpoint: 'your_azure_openai_endpoint',
-      deploymentName: 'your_deployment_name',
-      apiKey: 'your_azure_openai_api_key'
-    };
+            function submitTalentForm() {
+                const name = document.getElementById('talentName').value.trim();
+                const phone = document.getElementById('talentPhone').value.trim();
+                
+                if (!name || !phone) {
+                    alert('Please fill in all fields.');
+                    return;
+                }
+                
+                if (!validatePhone(phone)) {
+                    alert('Please enter a valid phone number (at least 10 digits).');
+                    return;
+                }
+                
+                formData.talentName = name;
+                formData.talentPhone = phone;
+                
+                addMessage(`Name: ${name}\nPhone Number: ${phone}`, false);
+                addMessage(`Thanks, ${name}! A Talent Partner will call you within the hour. View Our Available Talent Pools while you wait.`, true, true, [
+                    { text: 'View Talent Pools', action: () => window.open('/talent/talent-pools', '_blank') }
+                ]);
+            }
 
-    // Format AI response to clean up HTML entities and improve formatting
-    function formatAIResponse(text) {
-      return text
-        .replace(/&quot;/g, '')  // Remove quotes
-        .replace(/&amp;/g, '&')   // Fix ampersands
-        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')  // Convert **text** to bold
-        .replace(/\*(.*?)\*/g, '<em>$1</em>')  // Convert *text* to italic
-        .replace(/\d+\. \*\*(.*?)\*\*/g, '<br><strong>$1</strong>')  // Format numbered lists with bold headers
-        .replace(/\d+\. (.*?)(?=\d+\.|$)/g, '<br>• $1')  // Convert numbered lists to bullet points
-        .replace(/^\s*-\s*/gm, '• ')  // Convert dashes to bullets
-        .replace(/\n\n/g, '<br><br>')  // Double line breaks
-        .replace(/\n/g, '<br>')  // Single line breaks
-        .trim();
-    }
+            function showDataAIOptions() {
+                addMessage('We can help you turn data into decisions. Which area interests you most?', true, true, [
+                    { text: 'Data Strategy & Governance', action: () => selectDataAIType('Data Strategy & Governance') },
+                    { text: 'Predictive Analytics / ML', action: () => selectDataAIType('Predictive Analytics / ML') },
+                    { text: 'Generative AI / Chatbots', action: () => selectDataAIType('Generative AI / Chatbots') }
+                ]);
+            }
 
-    // Get AI response
-    async function getAIResponse(message) {
-      try {
-        const response = await fetch(`${AZURE_CONFIG.endpoint}/openai/deployments/${AZURE_CONFIG.deploymentName}/chat/completions?api-version=2024-02-15-preview`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'api-key': AZURE_CONFIG.apiKey
-          },
-          body: JSON.stringify({
-            messages: [{
-              role: 'system',
-              content: 'You are a helpful assistant for Gradient M IT Consulting & Services. Founded in July 2018 in Bangalore by CEO Ravindra Talwai. We offer IT Consulting, Cloud Services, Digital Workplace, Data & AI, and Talent Acquisition services. Keep responses concise and helpful. Format lists with clear bullet points.'
-            }, {
-              role: 'user',
-              content: message
-            }],
-            max_tokens: 800,
-            temperature: 0.7
-          })
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          return formatAIResponse(data.choices[0].message.content);
-        } else {
-          return getSimpleResponse(message);
-        }
-      } catch (error) {
-        return getSimpleResponse(message);
-      }
-    }
+            function selectDataAIType(type) {
+                addMessage(type, false);
+                formData.dataAIType = type;
+                
+                if (type === 'Generative AI / Chatbots') {
+                    addMessage('Perfect. Generative AI requires a strategic discussion. Would you like to Connect with a Data Scientist or See Case Studies?', true, true, [
+                        { text: 'Connect with a Data Scientist', action: () => showDataScientistForm() },
+                        { text: 'See Case Studies', action: () => showDataAICaseStudies() }
+                    ]);
+                } else {
+                    addMessage(`${type} is a specialized area. Would you like to Connect with a Data Scientist or See Case Studies?`, true, true, [
+                        { text: 'Connect with a Data Scientist', action: () => showDataScientistForm() },
+                        { text: 'See Case Studies', action: () => showDataAICaseStudies() }
+                    ]);
+                }
+            }
 
-    // Fallback responses
-    function getSimpleResponse(message) {
-      const lowerMessage = message.toLowerCase();
-      
-      if (lowerMessage.includes('hi') || lowerMessage.includes('hello')) {
-        return 'Hello! Welcome to Gradient M. How can I help you today?';
-      }
-      if (lowerMessage.includes('service')) {
-        return 'We offer IT Consulting, Cloud Services, Digital Workplace, Data & AI, and Talent Acquisition services. Which one interests you?';
-      }
-      if (lowerMessage.includes('contact')) {
-        return 'You can reach us at services@gradientm.com. Would you like me to help you get in touch?';
-      }
-      return 'Thank you for your message. How can I assist you with our services today?';
-    }
+            function showDataScientistForm() {
+                addMessage('Connect with a Data Scientist', false);
+                addMessage('Please confirm your Name and Work Email for the introduction.', true);
+                const formHtml = `
+                    <div class="form-group">
+                        <input type="text" id="dataScientistName" placeholder="Name" required>
+                    </div>
+                    <div class="form-group">
+                        <input type="email" id="dataScientistEmail" placeholder="Work Email" required>
+                    </div>
+                    <button onclick="submitDataScientistForm()" class="submit-btn">Submit</button>
+                `;
+                addMessage(formHtml, true);
+            }
 
-    async function sendConstantMessage() {
-      const input = document.getElementById('constantUserInput');
-      const message = input?.value.trim();
-      
-      if (!message) return;
-      
-      addMessage(message, false, false, [], 0);
-      input.value = '';
-      
-      const lowerMessage = message.toLowerCase();
-      
-      // Handle specific actions
-      if (lowerMessage.includes('contact') && !lowerMessage.includes('how')) {
-        showContactForm();
-        return;
-      }
-      
-      // Get AI response
-      const response = await getAIResponse(message);
-      addMessage(response, true);
-    }
+            function submitDataScientistForm() {
+                const name = document.getElementById('dataScientistName').value.trim();
+                const email = document.getElementById('dataScientistEmail').value.trim();
+                
+                if (!name || !email) {
+                    alert('Please fill in all fields.');
+                    return;
+                }
+                
+                if (!validateEmail(email)) {
+                    alert('Please enter a valid email address.');
+                    return;
+                }
+                
+                formData.dataScientistName = name;
+                formData.dataScientistEmail = email;
+                
+                addMessage(`Name: ${name}\nWork Email: ${email}`, false);
+                addMessage('Introduction sent! Thank you.', true);
+            }
 
-    function clearChat() {
-      document.getElementById('chatMessages').innerHTML = '';
-      formData = {};
-      currentStep = 'greeting';
-      chatbotInitialized = false;
-    }
+            function showDataAICaseStudies() {
+                addMessage('See Case Studies', false);
+                const serviceType = formData.dataAIType;
+                
+                if (serviceType === 'Generative AI / Chatbots') {
+                    addMessage('Here are some relevant examples:', true, true, [
+                        { text: 'Generative AI Case Studies', action: () => window.open('/case-studies/generative-ai', '_blank') },
+                        { text: 'Chatbot Case Studies', action: () => window.open('/case-studies/chatbots', '_blank') }
+                    ]);
+                } else {
+                    addMessage('Here are some relevant case studies for your area of interest:', true, true, [
+                        { text: 'View Case Studies', action: () => window.open('/case-studies/data-ai', '_blank') }
+                    ]);
+                }
+            }
 
-    // Event listeners
-    document.addEventListener('DOMContentLoaded', function() {
-      const input = document.getElementById('constantUserInput');
-      if (input) {
-        input.addEventListener('keypress', function(e) {
-          if (e.key === 'Enter') {
-            sendConstantMessage();
-          }
-        });
-      }
-      
-      // Show popup after 1 second
-      setTimeout(() => {
-        showChatPopup();
-      }, 1000);
-    });
-  </script>
+            function showInfrastructureOptions() {
+                addMessage('Got it. Which area is your primary focus for infrastructure improvement?', true, true, [
+                    { text: 'Cloud Migration', action: () => selectInfrastructureType('Cloud Migration') },
+                    { text: 'Managed IT Services', action: () => selectInfrastructureType('Managed IT Services') },
+                    { text: 'Security & Performance', action: () => selectInfrastructureType('Security & Performance') }
+                ]);
+            }
+
+            function selectInfrastructureType(type) {
+                addMessage(type, false);
+                formData.infrastructureType = type;
+                
+                const caseStudyMap = {
+                    'Cloud Migration': 'Cloud Platform',
+                    'Managed IT Services': 'Managed Services',
+                    'Security & Performance': 'Security Enhancement'
+                };
+                
+                const caseStudyType = caseStudyMap[type] || 'Infrastructure';
+                addMessage(`We can share a case study on ${caseStudyType} migration. Can I send the relevant case study to your email?`, true);
+                showCaseStudyForm();
+            }
+
+            function showCaseStudyForm() {
+                const formHtml = `
+                    <div class="form-group">
+                        <input type="email" id="caseStudyEmail" placeholder="Email" required>
+                    </div>
+                    <button onclick="submitCaseStudyForm()" class="submit-btn">Send Case Study</button>
+                `;
+                addMessage(formHtml, true);
+            }
+
+            function submitCaseStudyForm() {
+                const email = document.getElementById('caseStudyEmail').value;
+                
+                if (!email) {
+                    alert('Please enter your email.');
+                    return;
+                }
+                
+                if (!validateEmail(email)) {
+                    alert('Please enter a valid email address.');
+                    return;
+                }
+                
+                formData.caseStudyEmail = email;
+                
+                addMessage(`Email: ${email}`, false);
+                addMessage('Email sent! Would you like to Schedule a Free Infrastructure Assessment?', true, true, [
+                    { text: 'Schedule Assessment', action: () => window.open('https://calendly.com/gradientm-assessment', '_blank') }
+                ]);
+            }
+
+            function showITConsultingOptions() {
+                addMessage('We focus on strategy and growth. Are you looking for IT Roadmap / Strategy or Cost Optimization / Assessment?', true, true, [
+                    { text: 'IT Roadmap / Strategy', action: () => selectITConsultingType('IT Roadmap / Strategy') },
+                    { text: 'Cost Optimization / Assessment', action: () => selectITConsultingType('Cost Optimization / Assessment') }
+                ]);
+            }
+
+            function selectITConsultingType(type) {
+                addMessage(type, false);
+                formData.consultingType = type;
+                addMessage('Great. For a personalized response, please share your Role (e.g., \'CTO\', \'Head of IT\') and Work Email.', true);
+                showITConsultingForm();
+            }
+
+            function showITConsultingForm() {
+                const formHtml = `
+                    <div class="form-group">
+                        <input type="text" id="role" placeholder="Role (e.g., CTO, Head of IT) *" required>
+                    </div>
+                    <div class="form-group">
+                        <input type="email" id="workEmail" placeholder="Work Email *" required>
+                    </div>
+                    <button onclick="submitITConsultingForm()" class="submit-btn">Submit</button>
+                `;
+                addMessage(formHtml, true);
+            }
+
+            function submitITConsultingForm() {
+                const role = document.getElementById('role').value.trim();
+                const workEmail = document.getElementById('workEmail').value.trim();
+                
+                if (!role || !workEmail) {
+                    addMessage('Please fill in all required fields.', true, false, [], 0);
+                    return;
+                }
+                
+                if (!validateEmail(workEmail)) {
+                    addMessage('Please enter a valid email address.', true, false, [], 0);
+                    return;
+                }
+                
+                formData.role = role;
+                formData.workEmail = workEmail;
+                
+                addMessage(`Role: ${role}\nEmail: ${workEmail}`, false, false, [], 0);
+                addMessage('Thanks! A Strategy Consultant will contact you soon.', true);
+                addMessage('Explore Our Approach while you wait.', true, true, [
+                    { text: 'Explore Our Approach', action: () => window.open('/services/it-consulting', '_blank') }
+                ]);
+            }
+
+            function showDigitalWorkplaceOptions() {
+                addMessage('We streamline user productivity. Are you focused on Collaboration Tools (e.g., M365) or Managed Device Services?', true, true, [
+                    { text: 'Collaboration Tools (e.g., M365)', action: () => selectDigitalWorkplaceType('Collaboration Tools (e.g., M365)') },
+                    { text: 'Managed Device Services', action: () => selectDigitalWorkplaceType('Managed Device Services') }
+                ]);
+            }
+
+            function selectDigitalWorkplaceType(type) {
+                addMessage(type, false);
+                formData.digitalWorkplaceType = type;
+                addMessage('Excellent. To connect you to the right specialist, please provide your Work Email.', true);
+                showDigitalWorkplaceForm();
+            }
+
+            function showDigitalWorkplaceForm() {
+                const formHtml = `
+                    <div class="form-group">
+                        <input type="email" id="digitalWorkplaceEmail" placeholder="Work Email" required>
+                    </div>
+                    <button onclick="submitDigitalWorkplaceForm()" class="submit-btn">Connect Me</button>
+                `;
+                addMessage(formHtml, true);
+            }
+
+            function submitDigitalWorkplaceForm() {
+                const email = document.getElementById('digitalWorkplaceEmail').value.trim();
+                
+                if (!email) {
+                    alert('Please enter your work email.');
+                    return;
+                }
+                
+                if (!validateEmail(email)) {
+                    alert('Please enter a valid email address.');
+                    return;
+                }
+                
+                formData.digitalWorkplaceEmail = email;
+                
+                addMessage(`Work Email: ${email}`, false);
+                addMessage('Thank you! You\'ll hear from our Digital Workplace team shortly. Download our E-Book on Hybrid Work while you wait.', true, true, [
+                    { text: 'Download E-Book', action: () => window.open('/resources/hybrid-work-ebook.pdf', '_blank') }
+                ]);
+            }
+
+            function showContactCareers(type) {
+                if (type === 'Contact Us') {
+                    addMessage('Contact Us', false);
+                    addMessage('Sure, what\'s on your mind?', true, true, [
+                        { text: 'Speak to Sales', action: () => showSalesForm() },
+                        { text: 'General Inquiry', action: () => showGeneralInquiryForm() }
+                    ]);
+                } else {
+                    addMessage('Contact Us / Careers', false);
+                    addMessage('Sure, what\'s on your mind?', true, true, [
+                        { text: 'Speak to Sales', action: () => showSalesForm() },
+                        { text: 'Career Opportunities', action: () => showCareerOptions() },
+                        { text: 'General Inquiry', action: () => showGeneralInquiryForm() }
+                    ]);
+                }
+            }
+
+            function showSalesForm() {
+                addMessage('Speak to Sales', false);
+                addMessage('Great! To ensure we connect you to the right team, please provide your Name and Work Email.', true);
+                const formHtml = `
+                    <div class="form-group">
+                        <input type="text" id="salesName" placeholder="Name" required>
+                    </div>
+                    <div class="form-group">
+                        <input type="email" id="salesEmail" placeholder="Work Email" required>
+                    </div>
+                    <button onclick="submitSalesForm()" class="submit-btn">Submit</button>
+                `;
+                addMessage(formHtml, true);
+            }
+
+            function submitSalesForm() {
+                const name = document.getElementById('salesName').value.trim();
+                const email = document.getElementById('salesEmail').value.trim();
+                
+                if (!name || !email) {
+                    alert('Please fill in all fields.');
+                    return;
+                }
+                
+                if (!validateEmail(email)) {
+                    alert('Please enter a valid email address.');
+                    return;
+                }
+                
+                formData.salesName = name;
+                formData.salesEmail = email;
+                
+                addMessage(`Name: ${name}\nWork Email: ${email}`, false);
+                addMessage(`Thanks, ${name}! Our sales team will be in touch shortly.`, true);
+                addMessage('Would you like to view our services or just browse?', true, true, [
+                    { text: 'View Our Services', action: () => window.open('/services', '_blank') },
+                    { text: 'Just Browsing', action: () => showBrowsingResponse() }
+                ]);
+            }
+
+            function showCareerOptions() {
+                addMessage('Career Opportunities', false);
+                addMessage('Fantastic! You can explore our open roles and apply directly on our Careers Page. Would you like to Submit Your Resume for future consideration?', true, true, [
+                    { text: 'Submit Resume', action: () => showResumeSubmissionForm() },
+                    { text: 'Just Browsing', action: () => showBrowsingResponse() },
+                    { text: 'View Careers Page', action: () => window.open('/careers', '_blank') }
+                ]);
+            }
+
+            function showResumeSubmissionForm() {
+                addMessage('Submit Resume', false);
+                addMessage('Please provide your Name and Email, and we\'ll send you a link to upload your resume.', true);
+                const formHtml = `
+                    <div class="form-group">
+                        <input type="text" id="resumeName" placeholder="Name" required>
+                    </div>
+                    <div class="form-group">
+                        <input type="email" id="resumeEmail" placeholder="Email" required>
+                    </div>
+                    <button onclick="submitResumeForm()" class="submit-btn">Send Link</button>
+                `;
+                addMessage(formHtml, true);
+            }
+
+            function submitResumeForm() {
+                const name = document.getElementById('resumeName').value.trim();
+                const email = document.getElementById('resumeEmail').value.trim();
+                
+                if (!name || !email) {
+                    alert('Please fill in all fields.');
+                    return;
+                }
+                
+                if (!validateEmail(email)) {
+                    alert('Please enter a valid email address.');
+                    return;
+                }
+                
+                formData.resumeName = name;
+                formData.resumeEmail = email;
+                
+                addMessage(`Name: ${name}\nEmail: ${email}`, false);
+                addMessage('Link sent! We appreciate your interest.', true);
+            }
+
+            function showBrowsingResponse() {
+                addMessage('Just Browsing', false);
+                addMessage('No problem! Feel free to explore our Careers Page anytime.', true, true, [
+                    { text: 'View Careers Page', action: () => window.open('/careers', '_blank') }
+                ]);
+            }
+
+            function showGeneralInquiryForm() {
+                addMessage('General Inquiry', false);
+                addMessage('Please briefly describe your query. To ensure a response, share your Name and Work Email.', true);
+                const formHtml = `
+                    <div class="form-group">
+                        <textarea id="inquiryQuery" placeholder="Query Description" rows="3" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <input type="text" id="inquiryName" placeholder="Name" required>
+                    </div>
+                    <div class="form-group">
+                        <input type="email" id="inquiryEmail" placeholder="Work Email" required>
+                    </div>
+                    <button onclick="submitInquiryForm()" class="submit-btn">Submit</button>
+                `;
+                addMessage(formHtml, true);
+            }
+
+            function submitInquiryForm() {
+                const query = document.getElementById('inquiryQuery').value.trim();
+                const name = document.getElementById('inquiryName').value.trim();
+                const email = document.getElementById('inquiryEmail').value.trim();
+                
+                if (!query || !name || !email) {
+                    alert('Please fill in all fields.');
+                    return;
+                }
+                
+                if (!validateEmail(email)) {
+                    alert('Please enter a valid email address.');
+                    return;
+                }
+                
+                formData.inquiryQuery = query;
+                formData.inquiryName = name;
+                formData.inquiryEmail = email;
+                
+                addMessage(`Query: ${query}\nName: ${name}\nWork Email: ${email}`, false);
+                addMessage('Thank you! Our team will get back to you shortly.', true);
+            }
+
+            function showRequirement() {
+                addMessage('Need Support/I Have a Specific Requirement', false);
+                addMessage('Please describe your specific requirement or the support you need. Be as detailed as possible so we can better assist you.');
+                showTextInput();
+            }
+
+            function showTextInput(type = 'requirement') {
+                currentStep = type;
+                if (type === 'general') {
+                    addMessage('Please type your message or question:', true);
+                }
+            }
+
+            function showCareers() {
+                addMessage('Career Opportunities', false);
+                addMessage('Join our growing team! We offer:', true, true, [
+                    { text: 'Current Openings', action: () => showOpenings() },
+                    { text: 'Submit Resume', action: () => showResumeForm() },
+                    { text: 'Company Culture', action: () => showCulture() }
+                ]);
+            }
+
+            function showContact() {
+                addMessage('Contact Us', false);
+                showContactForm();
+            }
+
+            function showContactForm() {
+                const formHtml = `
+                    <div class="form-group">
+                        <input type="text" id="name" placeholder="Name" required>
+                    </div>
+                    <div class="form-group">
+                        <input type="tel" id="phone" placeholder="Phone Number" required>
+                    </div>
+                    <div class="form-group">
+                        <input type="email" id="email" placeholder="Email ID" required>
+                    </div>
+                    <div class="form-group">
+                        <input type="text" id="company" placeholder="Company Name" required>
+                    </div>
+                    <div class="form-group">
+                        <textarea id="message" placeholder="Requirements / Message" rows="3"></textarea>
+                    </div>
+                    <button class="submit-btn" onclick="submitForm()">Submit</button>
+                `;
+                
+                addMessage('Please share your contact details:');
+                const messagesDiv = document.getElementById('chatMessages');
+                const formDiv = document.createElement('div');
+                formDiv.className = 'message';
+                formDiv.innerHTML = `<div class="bot-message">${formHtml}</div>`;
+                messagesDiv.appendChild(formDiv);
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            }
+
+            async function submitForm() {
+                const nameEl = document.getElementById('name');
+                const phoneEl = document.getElementById('phone');
+                const emailEl = document.getElementById('email');
+                const companyEl = document.getElementById('company');
+                const messageEl = document.getElementById('message');
+                
+                if (!nameEl || !phoneEl || !emailEl || !companyEl) {
+                    alert('Form elements not found. Please refresh the page.');
+                    return;
+                }
+                
+                const name = nameEl.value.trim();
+                const phone = phoneEl.value.trim();
+                const email = emailEl.value.trim();
+                const company = companyEl.value.trim();
+                const message = messageEl ? messageEl.value.trim() : '';
+
+                if (!name || !phone || !email || !company) {
+                    alert('Please fill in all required fields (Name, Phone, Email, Company).');
+                    return;
+                }
+                
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(email)) {
+                    alert('Please enter a valid email address.');
+                    return;
+                }
+
+                const formData = { 
+                    name, 
+                    phone, 
+                    email, 
+                    company, 
+                    message: message || 'No additional message provided',
+                    requirement: userRequirement || 'General inquiry',
+                    timestamp: new Date().toISOString(),
+                    type: 'contact_form'
+                };
+                
+                // Save to localStorage (client-side storage)
+                const leads = JSON.parse(localStorage.getItem('gradient_m_leads') || '[]');
+                leads.push(formData);
+                localStorage.setItem('gradient_m_leads', JSON.stringify(leads));
+                
+                console.log('Form data saved locally:', formData);
+                addMessage('✅ Thank you! Your information has been recorded.', true);
+                addMessage('Our team will contact you within 24 hours. 📞');
+                
+                setTimeout(() => {
+                    document.getElementById('chatMessages').innerHTML = '';
+                    showGreeting();
+                }, 4000);
+            }
+
+            function sendMessage() {
+                sendConstantMessage();
+            }
+
+            // Azure OpenAI Configuration
+            const AZURE_CONFIG = {
+                endpoint: 'YOUR_AZURE_ENDPOINT',
+                deploymentName: 'YOUR_DEPLOYMENT_NAME',
+                apiKey: 'YOUR_API_KEY',
+                searchEndpoint: 'YOUR_SEARCH_ENDPOINT',
+                searchKey: 'YOUR_SEARCH_KEY',
+                searchIndex: 'YOUR_SEARCH_INDEX'
+            };
+
+            // Process AI response to format properly
+            function processAIResponse(text) {
+                let formatted = text
+                    .replace(/&amp;/g, '&')            // Fix HTML entities
+                    .replace(/&quot;/g, '"')          // Fix quotes
+                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')  // Convert **bold** to HTML
+                    .replace(/##\s*(.*?)$/gm, '<h3 style="margin: 5px 0;">$1</h3>')          // Convert ## to h3
+                    .replace(/#\s*(.*?)$/gm, '<h4 style="margin: 3px 0;">$1</h4>')           // Convert # to h4
+                    .replace(/---/g, '<hr style="margin: 8px 0;">')                          // Convert --- to horizontal line
+                    .replace(/^\s*(\d+\.\s*.+)$/gm, '<div style="margin: 3px 0; line-height: 1.3;"><strong>$1</strong></div>') // Format numbered lists
+                    .replace(/^\s*•\s*(.+)$/gm, '<div style="margin: 2px 0; padding-left: 15px; line-height: 1.3;">• $1</div>') // Format bullet points
+                    .replace(/\n\n\n+/g, '<br>')                      // Multiple line breaks to single
+                    .replace(/\n\n/g, '<br>')                         // Double line breaks to single
+                    .replace(/\n/g, '<br>')                           // Single line breaks
+                    .replace(/(<br>\s*){3,}/g, '<br><br>')            // Limit consecutive breaks
+                    .trim();
+                
+                return formatted;
+            }
+
+            // Get AI response with timeout and better error handling
+            async function getAIResponse(message) {
+                try {
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+                    
+                    const response = await fetch(`${AZURE_CONFIG.endpoint}/openai/deployments/${AZURE_CONFIG.deploymentName}/chat/completions?api-version=2024-02-15-preview`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'api-key': AZURE_CONFIG.apiKey
+                        },
+                        body: JSON.stringify({
+                            messages: [{
+                                role: 'system',
+                                content: 'You are a helpful assistant for Gradient M IT Consulting & Services. Founded in July 2018 in Bangalore by CEO Ravindra Talwai with 25+ years experience at Cognizant and Wipro. We offer IT Consulting, Cloud Services, Digital Workplace, Data & AI, and Talent Acquisition services.'
+                            }, {
+                                role: 'user',
+                                content: message
+                            }],
+                            max_tokens: 1500,
+                            temperature: 0.7
+                        }),
+                        signal: controller.signal
+                    });
+                    
+                    clearTimeout(timeoutId);
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        return processAIResponse(data.choices[0].message.content);
+                    } else {
+                        console.log('API Error:', response.status);
+                        return getSimpleResponse(message);
+                    }
+                } catch (error) {
+                    console.log('AI service error:', error.message);
+                    return getSimpleResponse(message);
+                }
+            }
+
+            // Simple client-side responses for common queries (fallback)
+            function getSimpleResponse(message) {
+                const lowerMessage = message.toLowerCase();
+                
+                if (lowerMessage === 'hi' || lowerMessage === 'hello') {
+                    return 'Hello! Welcome to Gradient M. How can I help you today?';
+                }
+                
+                if (lowerMessage.includes('service')) {
+                    return 'We offer IT Consulting, Cloud Services, Digital Workplace, Data & AI, and Talent Acquisition services. Which one interests you?';
+                }
+                
+                if (lowerMessage.includes('contact')) {
+                    return 'You can reach us at services@gradientm.com or use our contact form. Would you like me to help you get in touch?';
+                }
+                
+                if (lowerMessage.includes('price') || lowerMessage.includes('cost')) {
+                    return 'Our pricing varies based on your specific needs. Would you like to schedule a consultation to discuss your requirements?';
+                }
+                
+                return 'Thank you for your message. Our team will get back to you soon. Is there anything specific I can help you with right now?';
+            }
+
+            async function sendConstantMessage() {
+                const input = document.getElementById('constantUserInput');
+                if (!input) {
+                    console.log('Input not found');
+                    return;
+                }
+                
+                const message = input.value.trim();
+                if (!message) {
+                    console.log('No message');
+                    return;
+                }
+                
+                console.log('Message received:', message);
+                addMessage(message, false, false, [], 0);
+                input.value = '';
+                
+                const lowerInput = message.toLowerCase();
+                
+                // Handle simple greetings with AI only
+                if (lowerInput === 'hi' || lowerInput === 'hello' || lowerInput === 'hey') {
+                    const response = await getAIResponse(message);
+                    addMessage(response, true);
+                    return;
+                }
+                
+                // For other messages, check if they need structured responses
+                if (lowerInput.includes('human') || lowerInput.includes('sales') || lowerInput.includes('speak') ||
+                    lowerInput.includes('career') || lowerInput.includes('job') || lowerInput.includes('hiring')) {
+                    processUserInput(message);
+                } else {
+                    // Use AI for general questions
+                    const response = await getAIResponse(message);
+                    addMessage(response, true);
+                }
+            }
+
+            document.addEventListener('DOMContentLoaded', function() {
+                const userInput = document.getElementById('userInput');
+                const constantInput = document.getElementById('constantUserInput');
+                
+
+                
+                if (constantInput) {
+                    constantInput.addEventListener('keypress', function(e) {
+                        if (e.key === 'Enter') {
+                            sendConstantMessage();
+                        }
+                    });
+                }
+            });
+
+            function showMoreInfo(service) {
+                addMessage('Learn More', false);
+                addMessage('Visit our website for detailed information: <a href="https://www.gradientm.com" target="_blank">www.gradientm.com</a><br><br>Or contact our experts directly!');
+                showContactForm();
+            }
+            
+            function showConsultationForm() {
+                addMessage('Schedule a Consultation', false);
+                addMessage('Our experts will provide a free consultation tailored to your needs.');
+                showContactForm();
+            }
+            
+            function showOpenings() {
+                addMessage('Current Openings', false);
+                addMessage('We are hiring for various positions:<br>• Cloud Engineers<br>• Data Scientists<br>• Software Developers<br>• Cybersecurity Specialists<br><br>📧 Send your resume to: careers@gradientm.com');
+            }
+            
+            function showResumeForm() {
+                addMessage('Submit Resume', false);
+                addMessage('Please share your details and we\'ll get back to you:', true);
+                showContactForm();
+            }
+            
+            function showCulture() {
+                addMessage('Company Culture', false);
+                addMessage('At Gradient M, we believe in:<br>• Innovation & Excellence<br>• Work-Life Balance<br>• Continuous Learning<br>• Collaborative Environment<br>• Growth Opportunities<br><br>Join us in shaping the future of technology!');
+            }
+
+            function clearChat() {
+                document.getElementById('chatMessages').innerHTML = '';
+                formData = {};
+                currentStep = 'greeting';
+                setTimeout(() => showGreeting(), 300);
+            }
+
+            function goBack() {
+                clearChat();
+            }
+        </script>
 </body>
 </html>
